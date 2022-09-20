@@ -36,3 +36,13 @@ func Max[T Number](a, b T) T {
 	}
 	return b
 }
+
+func Range[T Int | Uint](start, stop, step T) []T {
+	var result []T = make([]T, (stop-start)/step)
+	n := 0
+	for i := start; i < stop; i += step {
+		result[n] = i
+		n++
+	}
+	return result
+}
