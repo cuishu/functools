@@ -1,6 +1,7 @@
 package functools
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -26,4 +27,14 @@ func BenchmarkMap(b *testing.B) {
 			return i + 1
 		}, a)
 	}
+}
+
+func TestForEach(t *testing.T) {
+	var a []int
+	for i := 0; i < 100; i++ {
+		a = append(a, i)
+	}
+	ForEach(a, func(i int) {
+		fmt.Println(i)
+	})
 }

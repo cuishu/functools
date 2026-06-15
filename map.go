@@ -9,3 +9,9 @@ func Map[A any, B any](f MapFunc[A, B], list []A) []B {
 	}
 	return result
 }
+
+func ForEach[A any](list []A, f func(A)) {
+	for _, data := range list {
+		f(data)
+	}
+}
