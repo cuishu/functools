@@ -18,9 +18,9 @@ type Number interface {
 
 func Sum[T Number](slice []T) T {
 	var n T
-	return Reduce(func(x, y T) T {
+	return Reduce(slice, func(x, y T) T {
 		return x + y
-	}, slice, n)
+	}, n)
 }
 
 func Min[T Number](a, b T) T {

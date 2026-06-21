@@ -12,6 +12,6 @@ func NewPair[A any, B any](a A, b B) Pair[A, B] {
 	}
 }
 
-func (tuple Pair[A, B]) Values() (A, B) {
-	return tuple.First, tuple.Second
+func (pair Pair[A, B]) Values() (A, B) {
+	return pair.First, pair.Second
 }
