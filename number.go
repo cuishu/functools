@@ -1,5 +1,7 @@
 package functools
 
+import "cmp"
+
 type Int interface {
 	~int | ~int8 | ~int16 | ~int32 | ~int64
 }
@@ -23,18 +25,30 @@ func Sum[T Number](slice []T) T {
 	}, n)
 }
 
-func Min[T Number](a, b T) T {
-	if a < b {
+func Min[T cmp.Ordered](a T, args ...T) T {
+	if len(args) == 0 {
 		return a
 	}
-	return b
+	m := a
+	for _, x := range args {
+		if x < m {
+			m = x
+		}
+	}
+	return m
 }
 
-func Max[T Number](a, b T) T {
-	if a > b {
+func Max[T cmp.Ordered](a T, args ...T) T {
+	if len(args) == 0 {
 		return a
 	}
-	return b
+	m := a
+	for _, x := range args {
+		if x > m {
+			m = x
+		}
+	}
+	return m
 }
 
 func Range[T Int | Uint](start, stop, step T) []T {

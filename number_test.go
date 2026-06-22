@@ -29,7 +29,7 @@ func TestMin(t *testing.T) {
 		t.Fail()
 	}
 
-	if Min(2, 1) != 1 {
+	if Min(2, 1, 4) != 1 {
 		t.Fail()
 	}
 }
@@ -45,7 +45,7 @@ func TestMax(t *testing.T) {
 		t.Fail()
 	}
 
-	if Max(4, 3) != 4 {
+	if Max(4, 3, 3, 2, 1) != 4 {
 		t.Fail()
 	}
 }
