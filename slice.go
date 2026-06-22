@@ -22,115 +22,204 @@ func ReverseInPlace[T any](list []T) {
 
 // Diff 返回两个切片中不共有的元素（对称差集），结果去重。
 func Diff[T comparable](a, b []T) []T {
-	setA := make(map[T]struct{})
-	setB := make(map[T]struct{})
+	if len(a) == 0 {
+		return Unique(b)
+	}
+	if len(b) == 0 {
+		return Unique(a)
+	}
+
+	// 预分配一半容量（避免浪费，最坏扩容一次）
+	cap := (len(a) + len(b)) / 2
+	if cap < 1 {
+		cap = 1
+	}
+	diff := make([]T, 0, cap)
+
+	// 构建 b 的 map（键 -> 元素，去重）
+	bMap := make(map[T]T, len(b))
+	for _, v := range b {
+		if _, ok := bMap[v]; !ok {
+			bMap[v] = v
+		}
+	}
+
+	// 去重 a 中已处理的键
+	seenA := make(map[T]struct{}, len(a))
 
 	for _, v := range a {
-		setA[v] = struct{}{}
-	}
-	for _, v := range b {
-		setB[v] = struct{}{}
+		if _, ok := seenA[v]; ok {
+			continue
+		}
+		seenA[v] = struct{}{}
+
+		if _, ok := bMap[v]; ok {
+			// 该键在两边都存在，不属于差集，从 bMap 中移除
+			delete(bMap, v)
+		} else {
+			// 仅在 a 中，加入结果
+			diff = append(diff, v)
+		}
 	}
 
-	var diff []T
-	for v := range setA {
-		if _, ok := setB[v]; !ok {
-			diff = append(diff, v)
-		}
+	// bMap 中剩余的元素仅在 b 中，追加到结果
+	for _, v := range bMap {
+		diff = append(diff, v)
 	}
-	for v := range setB {
-		if _, ok := setA[v]; !ok {
-			diff = append(diff, v)
-		}
-	}
+
 	return diff
 }
 
-// DiffBy 返回两个切片中不共有的元素（对称差集），基于 selector 提取的键去重。
-// 结果中的元素取自首次出现的位置。
+// DiffBy 返回两个切片的对称差集（只存在于其中一个切片中的元素），
+// 基于 selector 提取的键进行去重。结果不保证顺序。
 func DiffBy[T any, K comparable](a, b []T, selector func(T) K) []T {
-	mapA := make(map[K]T)
-	mapB := make(map[K]T)
+	if len(a) == 0 {
+		return UniqueBy(b, selector)
+	}
+	if len(b) == 0 {
+		return UniqueBy(a, selector)
+	}
+
+	// 预分配一半容量（避免浪费，最坏扩容一次）
+	cap := (len(a) + len(b)) / 2
+	if cap < 1 {
+		cap = 1
+	}
+	diff := make([]T, 0, cap)
+
+	// 构建 b 的 map（键 -> 元素，去重）
+	bMap := make(map[K]T, len(b))
+	for _, v := range b {
+		key := selector(v)
+		if _, ok := bMap[key]; !ok {
+			bMap[key] = v
+		}
+	}
+
+	// 去重 a 中已处理的键
+	seenA := make(map[K]struct{}, len(a))
 
 	for _, v := range a {
 		key := selector(v)
-		if _, ok := mapA[key]; !ok {
-			mapA[key] = v
+		if _, ok := seenA[key]; ok {
+			continue
 		}
-	}
-	for _, v := range b {
-		key := selector(v)
-		if _, ok := mapB[key]; !ok {
-			mapB[key] = v
+		seenA[key] = struct{}{}
+
+		if _, ok := bMap[key]; ok {
+			// 该键在两边都存在，不属于差集，从 bMap 中移除
+			delete(bMap, key)
+		} else {
+			// 仅在 a 中，加入结果
+			diff = append(diff, v)
 		}
 	}
 
-	var diff []T
-	for key, val := range mapA {
-		if _, ok := mapB[key]; !ok {
-			diff = append(diff, val)
-		}
+	// bMap 中剩余的元素仅在 b 中，追加到结果
+	for _, v := range bMap {
+		diff = append(diff, v)
 	}
-	for key, val := range mapB {
-		if _, ok := mapA[key]; !ok {
-			diff = append(diff, val)
-		}
-	}
+
 	return diff
+}
+
+// calcHalfCap 计算半容量，至少为1
+func calcHalfCap(length int) int {
+	cap := length / 2
+	if cap < 1 {
+		cap = 1
+	}
+	return cap
 }
 
 // DiffSeparate 返回 (只在a中, 只在b中) 的两个切片，均去重。
 func DiffSeparate[T comparable](a, b []T) (onlyA, onlyB []T) {
-	setA := make(map[T]struct{})
-	setB := make(map[T]struct{})
+	// 快速路径：空切片
+	if len(a) == 0 {
+		return nil, Unique(b)
+	}
+	if len(b) == 0 {
+		return Unique(a), nil
+	}
+
+	// 预分配容量
+	onlyA = make([]T, 0, calcHalfCap(len(a)))
+	onlyB = make([]T, 0, calcHalfCap(len(b)))
+
+	// 构建 b 的 map（去重）
+	bMap := make(map[T]struct{}, len(b))
+	for _, v := range b {
+		bMap[v] = struct{}{}
+	}
+
+	// 用于去重 a 中已处理的元素
+	seenA := make(map[T]struct{}, len(a))
 
 	for _, v := range a {
-		setA[v] = struct{}{}
-	}
-	for _, v := range b {
-		setB[v] = struct{}{}
-	}
+		if _, ok := seenA[v]; ok {
+			continue
+		}
+		seenA[v] = struct{}{}
 
-	for v := range setA {
-		if _, ok := setB[v]; !ok {
+		if _, ok := bMap[v]; ok {
+			delete(bMap, v) // 该键在两边都存在，从 bMap 中移除
+		} else {
 			onlyA = append(onlyA, v)
 		}
 	}
-	for v := range setB {
-		if _, ok := setA[v]; !ok {
-			onlyB = append(onlyB, v)
-		}
+
+	// bMap 中剩余的元素就是仅存在于 b 的
+	for v := range bMap {
+		onlyB = append(onlyB, v)
 	}
+
 	return onlyA, onlyB
 }
 
 // DiffSeparateBy 返回两个切片：(只在a中, 只在b中)，基于 selector 提取的键去重。
 func DiffSeparateBy[T any, K comparable](a, b []T, selector func(T) K) (onlyA, onlyB []T) {
-	mapA := make(map[K]T)
-	mapB := make(map[K]T)
+	// 快速路径：空切片
+	if len(a) == 0 {
+		return nil, UniqueBy(b, selector)
+	}
+	if len(b) == 0 {
+		return UniqueBy(a, selector), nil
+	}
+
+	// 预分配容量
+	onlyA = make([]T, 0, calcHalfCap(len(a)))
+	onlyB = make([]T, 0, calcHalfCap(len(b)))
+
+	// 构建 b 的映射：键 -> 元素（遇到重复键保留首次出现）
+	bMap := make(map[K]T, len(b))
+	for _, v := range b {
+		key := selector(v)
+		if _, ok := bMap[key]; !ok {
+			bMap[key] = v
+		}
+	}
+
+	// 用于去重 a 中已处理过的键
+	seenA := make(map[K]struct{}, len(a))
 
 	for _, v := range a {
 		key := selector(v)
-		if _, ok := mapA[key]; !ok {
-			mapA[key] = v
+		if _, ok := seenA[key]; ok {
+			continue
 		}
-	}
-	for _, v := range b {
-		key := selector(v)
-		if _, ok := mapB[key]; !ok {
-			mapB[key] = v
+		seenA[key] = struct{}{}
+
+		if _, ok := bMap[key]; ok {
+			delete(bMap, key) // 键在两边都存在，移除
+		} else {
+			onlyA = append(onlyA, v)
 		}
 	}
 
-	for key, val := range mapA {
-		if _, ok := mapB[key]; !ok {
-			onlyA = append(onlyA, val)
-		}
+	// bMap 中剩余的键值对即为仅存在于 b 的元素
+	for _, v := range bMap {
+		onlyB = append(onlyB, v)
 	}
-	for key, val := range mapB {
-		if _, ok := mapA[key]; !ok {
-			onlyB = append(onlyB, val)
-		}
-	}
+
 	return onlyA, onlyB
 }
