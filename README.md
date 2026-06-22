@@ -291,7 +291,7 @@ func GroupBy[A any, B comparable](list []A, selector func(A) B) map[B][]A
 ```go
 words := []string{"go", "rust", "java", "zig"}
 groups := functools.GroupBy(words, func(s string) int { return len(s) })
-// groups[2] = ["go","zig"], groups[4] = ["rust","java"]
+// groups[2] = ["go"], groups[3] = ["zig"], groups[4] = ["rust","java"]
 ```
 
 ---
